@@ -1,0 +1,22 @@
+{
+  "name": "stockwatch-asx",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cross-fetch": "^3.0.4",
+    "express": "^4.17.1",
+    "mongoose": "^5.7.8",
+    "morgan": "^1.9.1",
+    "node-cron": "^2.0.3",
+    "nodemon": "^1.19.4",
+    "util": "^0.12.1"
+  }
+}

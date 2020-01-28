@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- <meta http-equiv="Content-Security-Policy" content="default-src https:"> -->
+    <title>StockWatch</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <a class="navbar-brand" href="#"><h3><span class="text-info">Stock</span>Watch</h3></a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse justify-content-end" id="navbarNavDropdown">
+      <ul class="nav nav-pills">
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle text-info btn btn-outline-info" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Sort</a>
+          <div class="dropdown-menu">
+            <a class="dropdown-item text-info" onclick="javascript:stocksByTicker()">by Ticker</a>
+            <a class="dropdown-item text-info" onclick="javascript:stocksByYearLow()">by Year Low</a>
+            <a class="dropdown-item text-info" onclick="javascript:stocksBySharePrice()">by Share Price</a>
+            <a class="dropdown-item text-info" onclick="javascript:stocksByLowestYTD()">by Lowest YTD</a>
+          </div>
+        </li>
+        <li class="nav-item ">
+            <a class="nav-link text-info" href="#" data-toggle="modal" data-target="#exampleModalCenter">About</a>
+          </li>
+      </ul>
+    </div>
+  </nav>  
+
+
+  <div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title text-info" id="exampleModalLongTitle">About StockWatch</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            StockWatch is a NodeJS application, running on a Google Cloud VM instance (free tier) that pulls stock information from asx.com.au API service (free service), on selected ASX companies, and track it against their performance in the last 52 weeks.
+            It saves data to a MongoDB Atlas cloud database cluster (free tier) and it is presented on front-end using BootStrap 4 (free and open-source CSS framework).
+            <br>
+          </br>
+            Functionalities such as 'Sorting by Year Low' and 'Sorting by Lowest Price' can assist in identifying buying opportunities.
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-info" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+<div id="mainDiv" class="container-fluid"></div>
+
+<script type="text/javascript" src="script.js"></script>
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+
+</body>
+
+</html>
