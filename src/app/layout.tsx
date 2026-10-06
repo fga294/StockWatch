@@ -9,9 +9,9 @@ const archivo = Archivo({
 });
 
 export const metadata: Metadata = {
-  title: "ASX 52-Week Lows",
+  title: "ASX 52-Week Lows & Highs",
   description:
-    "Which of the 200 most actively traded ASX companies are trading closest to their 52-week low.",
+    "Which of the 200 most actively traded ASX companies are trading closest to their 52-week low or high.",
 };
 
 export const viewport: Viewport = {

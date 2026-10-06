@@ -25,8 +25,9 @@ import {
   isValidBar,
   lastYearOfBars,
   pctAboveLow,
+  pctBelowHigh,
   rangePosition,
-  rankByProximityToLow,
+  rankBy,
   round,
 } from "../src/lib/metrics";
 import {
@@ -165,6 +166,12 @@ async function fetchProfile(ticker: string): Promise<Profile> {
   return { sector, industry: summary.assetProfile?.industry ?? null };
 }
 
+/** Ranks by proximity to the low (array order) and records each rank by proximity to the high. */
+function rankWithHighs(records: Omit<CompanyRecord, "rank" | "highRank">[]): CompanyRecord[] {
+  const highRanks = new Map(rankBy(records, (r) => r.pctBelowHigh).map((r) => [r.ticker, r.rank]));
+  return rankBy(records, (r) => r.pctAboveLow).map((r) => ({ ...r, highRank: highRanks.get(r.ticker)! }));
+}
+
 async function main() {
   const started = Date.now();
   const file = JSON.parse(await readFile(CONSTITUENTS_FILE, "utf8")) as ConstituentFile;
@@ -208,11 +215,12 @@ async function main() {
   });
 
   // 4. Metrics.
-  const records: Omit<CompanyRecord, "rank">[] = [];
+  const records: Omit<CompanyRecord, "rank" | "highRank">[] = [];
   universe.forEach((p, i) => {
     const range = fiftyTwoWeekRange(p.bars, p.price);
     const pct = range && pctAboveLow(p.price, range.low);
-    if (!range || pct === null) {
+    const pctHigh = range && pctBelowHigh(p.price, range.high);
+    if (!range || pct === null || pctHigh === null) {
       skipped.push({ ticker: p.ticker, reason: "could not compute 52-week range" });
       return;
     }
@@ -231,6 +239,7 @@ async function main() {
       low52Date: range.lowDate,
       high52Date: range.highDate,
       pctAboveLow: round(pct, 3),
+      pctBelowHigh: round(pctHigh, 3),
       rangePosition: pos === null ? null : round(pos, 2),
       history: lastYearOfBars(p.bars).map(barToTuple),
     });
@@ -248,7 +257,7 @@ async function main() {
       analysedCount: records.length,
       targetSize: TARGET_SIZE,
     },
-    companies: rankByProximityToLow(records),
+    companies: rankWithHighs(records),
     skipped: skipped.sort((a, b) => a.ticker.localeCompare(b.ticker)),
   };
 
