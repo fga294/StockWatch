@@ -22,6 +22,13 @@
   --amber-mark: #d08a00;
   --amber-bg: #fff4db;
   --hatch: rgb(180 35 24 / 0.22);
+  --up: #166534;
+  --up-mark: #2f9e57;
+  --up-bg: #e7f6ec;
+  --up2: #3f6212;
+  --up2-mark: #9ccc65;
+  --up2-bg: #f1f8e2;
+  --hatch-high: rgb(22 101 52 / 0.22);
   color-scheme: light;
 }
 
@@ -43,6 +50,13 @@
     --amber-mark: #d99a2b;
     --amber-bg: #33270f;
     --hatch: rgb(242 119 95 / 0.28);
+    --up: #6fdc95;
+    --up-mark: #4cc27a;
+    --up-bg: #13301f;
+    --up2: #b8dd7a;
+    --up2-mark: #a3cf62;
+    --up2-bg: #26301a;
+    --hatch-high: rgb(111 220 149 / 0.28);
     color-scheme: dark;
   }
 }
@@ -63,6 +77,12 @@
   --color-amber: var(--amber);
   --color-amber-mark: var(--amber-mark);
   --color-amber-bg: var(--amber-bg);
+  --color-up: var(--up);
+  --color-up-mark: var(--up-mark);
+  --color-up-bg: var(--up-bg);
+  --color-up2: var(--up2);
+  --color-up2-mark: var(--up2-mark);
+  --color-up2-bg: var(--up2-bg);
   --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -72,13 +92,20 @@ body {
   font-feature-settings: "tnum" 1;
 }
 
-/* The near-low zone on range rails: diagonal hatching over the bottom 10%. */
-.near-low-zone {
+/* The "within 10%" zone on range rails: diagonal hatching. */
+.near-low-zone,
+.near-high-zone {
   background-image: repeating-linear-gradient(
     135deg,
-    var(--hatch) 0 2px,
+    var(--zone-hatch) 0 2px,
     transparent 2px 5px
   );
+}
+.near-low-zone {
+  --zone-hatch: var(--hatch);
+}
+.near-high-zone {
+  --zone-hatch: var(--hatch-high);
 }
 
 /* Recharts draws its own focus rectangles on SVG wrappers; keep our ring instead. */

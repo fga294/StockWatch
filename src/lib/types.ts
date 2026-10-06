@@ -63,6 +63,8 @@ export interface FiftyTwoWeekRange {
 export interface CompanySummary {
   /** 1-based rank by % above 52-week low (1 = closest to its low). */
   rank: number;
+  /** 1-based rank by % below 52-week high (1 = closest to its high). */
+  highRank: number;
   /** ASX code, e.g. "BHP". */
   ticker: string;
   /** Yahoo symbol, e.g. "BHP.AX". */
@@ -80,6 +82,8 @@ export interface CompanySummary {
   high52Date: string;
   /** (price − low) / low × 100. */
   pctAboveLow: number;
+  /** (high − price) / high × 100. */
+  pctBelowHigh: number;
   /** (price − low) / (high − low) × 100, or null when high == low. */
   rangePosition: number | null;
 }
@@ -112,7 +116,7 @@ export interface Snapshot {
   lastUpdated: string;
   source: string;
   universe: UniverseInfo;
-  /** Sorted by rank (closest to 52-week low first). */
+  /** Sorted by rank (closest to 52-week low first); highRank orders by the high. */
   companies: CompanyRecord[];
   skipped: SkippedTicker[];
 }

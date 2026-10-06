@@ -1,14 +1,26 @@
-# StockWatch: ASX 52-week lows
+# StockWatch: ASX 52-week lows and highs
 
 A single-page dashboard showing which of the 200 most actively traded ASX
-companies are trading closest to their 52-week low.
+companies are trading closest to their 52-week low or their 52-week high.
 
-- Summary of how many companies are within 5% and 10% of their low, and which
-  sector has the most
-- A sortable table of the 20 closest, with red (≤ 5%) and amber (5–10%) rows
-  and a range rail for each
-- A % above low bar chart, a sector breakdown, and a scatter of all 200
-  (distance from low vs value traded)
+A switch at the top flips the whole page between two views. The view is kept
+in the URL (`/?view=highs`), so it can be linked to directly.
+
+| | Near lows (default) | Near highs |
+|---|---|---|
+| Ranked by | % above 52-week low | % below 52-week high |
+| ≤ 5% rows | red | green |
+| 5–10% rows | amber | light green |
+| Range rail hatching | left end: within 10% of the low | right end: within 10% of the high |
+
+Each view has the same features:
+
+- Summary of how many companies are within 5% and 10%, and which sector has
+  the most
+- A sortable table of the 20 closest, with colour-coded rows and a range rail
+  for each
+- A distance bar chart, a sector breakdown, and a scatter of all 200
+  (distance vs value traded)
 - Click any row, bar or point to see that company's 12-month price chart
   with its 52-week low and high marked
 
@@ -126,10 +138,12 @@ unit tests in `src/lib/metrics.test.ts`.
   the same way. If the delayed current price is outside that range, the range
   is widened to include it.
 - **% above 52-week low** = (price − low) / low × 100
+- **% below 52-week high** = (high − price) / high × 100
 - **Range position** = (price − low) / (high − low) × 100, where 0% means
-  at the low. It's shown as "–" if high equals low.
-- Companies are ranked by % above low, closest first, with ties broken by
-  ticker.
+  at the low and 100% at the high. It's shown as "–" if high equals low.
+- Companies are ranked twice, closest first, with ties broken by ticker:
+  `rank` by % above low, and `highRank` by % below high. Both are written to
+  the snapshot by the pipeline.
 
 The pipeline batches Yahoo requests (5 at a time, with a 500 ms pause between
 batches) and retries each request once. A ticker is skipped and reported at

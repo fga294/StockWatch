@@ -6,10 +6,11 @@ import {
   lastYearOfBars,
   oneYearBefore,
   pctAboveLow,
+  pctBelowHigh,
   proximityBand,
   rangePosition,
-  rankByProximityToLow,
-  sectorCountsNearLow,
+  rankBy,
+  sectorCountsNear,
   summarise,
   tupleToBar,
 } from "./metrics";
@@ -174,23 +175,52 @@ describe("averageDailyValue", () => {
   });
 });
 
-describe("proximityBand", () => {
-  it("bands at 5% and 10% inclusive", () => {
-    expect(proximityBand(0)).toBe("red");
-    expect(proximityBand(5)).toBe("red");
-    expect(proximityBand(5.01)).toBe("amber");
-    expect(proximityBand(10)).toBe("amber");
-    expect(proximityBand(10.01)).toBe("neutral");
+describe("pctBelowHigh", () => {
+  it("is 0 when price is at the high", () => {
+    expect(pctBelowHigh(20, 20)).toBe(0);
+  });
+
+  it("computes percentage below the high", () => {
+    expect(pctBelowHigh(18, 20)).toBeCloseTo(10);
+    expect(pctBelowHigh(10, 20)).toBeCloseTo(50);
+  });
+
+  it("is 0 at the high when high == low (flat range)", () => {
+    const r = fiftyTwoWeekRange([bar("2026-01-02", 5, 5)]);
+    expect(pctBelowHigh(5, r!.high)).toBe(0);
+  });
+
+  it("is never negative once the range is widened to the current price", () => {
+    const r = fiftyTwoWeekRange([bar("2026-01-02", 9, 12)], 13);
+    expect(pctBelowHigh(13, r!.high)).toBe(0);
+  });
+
+  it("returns null for missing or non-positive inputs", () => {
+    expect(pctBelowHigh(NaN, 20)).toBeNull();
+    expect(pctBelowHigh(10, 0)).toBeNull();
+    expect(pctBelowHigh(0, 20)).toBeNull();
   });
 });
 
-describe("rankByProximityToLow", () => {
+describe("proximityBand", () => {
+  it("bands at 5% and 10% inclusive", () => {
+    expect(proximityBand(0)).toBe("within5");
+    expect(proximityBand(5)).toBe("within5");
+    expect(proximityBand(5.01)).toBe("within10");
+    expect(proximityBand(10)).toBe("within10");
+    expect(proximityBand(10.01)).toBe("beyond");
+  });
+});
+
+describe("rankBy", () => {
+  const items = [
+    { ticker: "CCC", pctAboveLow: 12, pctBelowHigh: 1 },
+    { ticker: "BBB", pctAboveLow: 1, pctBelowHigh: 30 },
+    { ticker: "AAA", pctAboveLow: 1, pctBelowHigh: 20 },
+  ];
+
   it("ranks closest-to-low first with deterministic ties", () => {
-    const ranked = rankByProximityToLow([
-      { ticker: "CCC", pctAboveLow: 12 },
-      { ticker: "BBB", pctAboveLow: 1 },
-      { ticker: "AAA", pctAboveLow: 1 },
-    ]);
+    const ranked = rankBy(items, (c) => c.pctAboveLow);
     expect(ranked.map((r) => [r.ticker, r.rank])).toEqual([
       ["AAA", 1],
       ["BBB", 2],
@@ -198,40 +228,50 @@ describe("rankByProximityToLow", () => {
     ]);
   });
 
+  it("ranks closest-to-high first with the other accessor", () => {
+    const ranked = rankBy(items, (c) => c.pctBelowHigh);
+    expect(ranked.map((r) => r.ticker)).toEqual(["CCC", "AAA", "BBB"]);
+  });
+
   it("does not mutate its input", () => {
-    const input = [
-      { ticker: "B", pctAboveLow: 2 },
-      { ticker: "A", pctAboveLow: 1 },
-    ];
-    rankByProximityToLow(input);
-    expect(input[0].ticker).toBe("B");
+    rankBy(items, (c) => c.pctAboveLow);
+    expect(items[0].ticker).toBe("CCC");
   });
 });
 
-describe("summarise / sectorCountsNearLow", () => {
+describe("summarise / sectorCountsNear", () => {
   const companies = [
-    { sector: "Energy", pctAboveLow: 1 },
-    { sector: "Energy", pctAboveLow: 8 },
-    { sector: "Materials", pctAboveLow: 4 },
-    { sector: "Materials", pctAboveLow: 40 },
-    { sector: "Tech", pctAboveLow: 10 },
+    { sector: "Energy", pctAboveLow: 1, pctBelowHigh: 40 },
+    { sector: "Energy", pctAboveLow: 8, pctBelowHigh: 30 },
+    { sector: "Materials", pctAboveLow: 4, pctBelowHigh: 2 },
+    { sector: "Materials", pctAboveLow: 40, pctBelowHigh: 3 },
+    { sector: "Tech", pctAboveLow: 10, pctBelowHigh: 9 },
   ];
+  const toLow = (c: (typeof companies)[number]) => c.pctAboveLow;
+  const toHigh = (c: (typeof companies)[number]) => c.pctBelowHigh;
 
-  it("counts within 5% and 10%", () => {
-    const s = summarise(companies);
+  it("counts within 5% and 10% of the low", () => {
+    const s = summarise(companies, toLow);
     expect(s.analysed).toBe(5);
     expect(s.within5).toBe(2);
     expect(s.within10).toBe(4);
     expect(s.topSector).toEqual({ sector: "Energy", count: 2 });
   });
 
-  it("returns a null top sector when nothing is near its low", () => {
-    expect(summarise([{ sector: "X", pctAboveLow: 50 }]).topSector).toBeNull();
-    expect(summarise([]).topSector).toBeNull();
+  it("counts within 5% and 10% of the high", () => {
+    const s = summarise(companies, toHigh);
+    expect(s.within5).toBe(2);
+    expect(s.within10).toBe(3);
+    expect(s.topSector).toEqual({ sector: "Materials", count: 2 });
+  });
+
+  it("returns a null top sector when nothing is near", () => {
+    expect(summarise([{ sector: "X", pctAboveLow: 50 }], (c) => c.pctAboveLow).topSector).toBeNull();
+    expect(summarise([], toLow).topSector).toBeNull();
   });
 
   it("sorts sectors by count then name", () => {
-    expect(sectorCountsNearLow(companies)).toEqual([
+    expect(sectorCountsNear(companies, toLow)).toEqual([
       { sector: "Energy", count: 2 },
       { sector: "Materials", count: 1 },
       { sector: "Tech", count: 1 },

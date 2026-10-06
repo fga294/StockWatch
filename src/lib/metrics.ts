@@ -4,8 +4,12 @@
  */
 import type { BarTuple, DailyBar, FiftyTwoWeekRange } from "./types";
 
-export const NEAR_LOW_RED_PCT = 5;
-export const NEAR_LOW_AMBER_PCT = 10;
+/**
+ * Proximity thresholds, shared by both views: "within 5%" and "within 10%"
+ * of the 52-week low (lows view) or high (highs view).
+ */
+export const INNER_BAND_PCT = 5;
+export const OUTER_BAND_PCT = 10;
 
 const isPositive = (n: unknown): n is number =>
   typeof n === "number" && Number.isFinite(n) && n > 0;
@@ -92,6 +96,12 @@ export function pctAboveLow(price: number, low: number): number | null {
   return ((price - low) / low) * 100;
 }
 
+/** (high − price) / high × 100. 0 = at the 52-week high. Null if inputs are missing or ≤ 0. */
+export function pctBelowHigh(price: number, high: number): number | null {
+  if (!isPositive(price) || !isPositive(high)) return null;
+  return ((high - price) / high) * 100;
+}
+
 /**
  * (price − low) / (high − low) × 100, clamped to 0–100.
  * 0 = at the 52-week low, 100 = at the 52-week high.
@@ -118,24 +128,31 @@ export function averageDailyValue(bars: readonly DailyBar[], days = 30): number 
   return total / recent.length;
 }
 
-export type ProximityBand = "red" | "amber" | "neutral";
-
-/** Colour band for a % above low: red ≤ 5%, amber 5–10%, neutral above. */
-export function proximityBand(pct: number): ProximityBand {
-  if (pct <= NEAR_LOW_RED_PCT) return "red";
-  if (pct <= NEAR_LOW_AMBER_PCT) return "amber";
-  return "neutral";
-}
+export type ProximityBand = "within5" | "within10" | "beyond";
 
 /**
- * Sort by % above low (closest first) and assign 1-based ranks.
+ * Band for a distance from the low or high (in %): within 5%, within 10%,
+ * or beyond. Colours are chosen by the UI per view.
+ */
+export function proximityBand(distancePct: number): ProximityBand {
+  if (distancePct <= INNER_BAND_PCT) return "within5";
+  if (distancePct <= OUTER_BAND_PCT) return "within10";
+  return "beyond";
+}
+
+/** Distance (in %) from the reference point, e.g. pctAboveLow or pctBelowHigh. */
+export type Distance<T> = (item: T) => number;
+
+/**
+ * Sort by distance (closest first) and assign 1-based ranks.
  * Ties break on ticker so the order is deterministic.
  */
-export function rankByProximityToLow<T extends { ticker: string; pctAboveLow: number }>(
+export function rankBy<T extends { ticker: string }>(
   items: readonly T[],
+  distance: Distance<T>,
 ): (T & { rank: number })[] {
   return [...items]
-    .sort((a, b) => a.pctAboveLow - b.pctAboveLow || a.ticker.localeCompare(b.ticker))
+    .sort((a, b) => distance(a) - distance(b) || a.ticker.localeCompare(b.ticker))
     .map((item, i) => ({ ...item, rank: i + 1 }));
 }
 
@@ -143,32 +160,34 @@ export interface SummaryStats {
   analysed: number;
   within5: number;
   within10: number;
-  /** Sector with the most companies within 10% of their low (null if none). */
+  /** Sector with the most companies within 10% (null if none). */
   topSector: { sector: string; count: number } | null;
 }
 
-/** Count of companies within `thresholdPct` of their low, per sector, largest first. */
-export function sectorCountsNearLow(
-  companies: readonly { sector: string; pctAboveLow: number }[],
-  thresholdPct = NEAR_LOW_AMBER_PCT,
+/** Companies within `thresholdPct` by the given distance, per sector, largest first. */
+export function sectorCountsNear<T extends { sector: string }>(
+  companies: readonly T[],
+  distance: Distance<T>,
+  thresholdPct = OUTER_BAND_PCT,
 ): { sector: string; count: number }[] {
   const counts = new Map<string, number>();
   for (const c of companies) {
-    if (c.pctAboveLow <= thresholdPct) counts.set(c.sector, (counts.get(c.sector) ?? 0) + 1);
+    if (distance(c) <= thresholdPct) counts.set(c.sector, (counts.get(c.sector) ?? 0) + 1);
   }
   return [...counts.entries()]
     .map(([sector, count]) => ({ sector, count }))
     .sort((a, b) => b.count - a.count || a.sector.localeCompare(b.sector));
 }
 
-export function summarise(
-  companies: readonly { sector: string; pctAboveLow: number }[],
+export function summarise<T extends { sector: string }>(
+  companies: readonly T[],
+  distance: Distance<T>,
 ): SummaryStats {
-  const sectors = sectorCountsNearLow(companies);
+  const sectors = sectorCountsNear(companies, distance);
   return {
     analysed: companies.length,
-    within5: companies.filter((c) => c.pctAboveLow <= NEAR_LOW_RED_PCT).length,
-    within10: companies.filter((c) => c.pctAboveLow <= NEAR_LOW_AMBER_PCT).length,
+    within5: companies.filter((c) => distance(c) <= INNER_BAND_PCT).length,
+    within10: companies.filter((c) => distance(c) <= OUTER_BAND_PCT).length,
     topSector: sectors[0] ?? null,
   };
 }

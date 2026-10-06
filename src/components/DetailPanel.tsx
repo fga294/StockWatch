@@ -15,7 +15,7 @@ import {
 import { formatDate, formatMonth, formatPct, formatPrice, formatValue } from "@/lib/format";
 import { tupleToBar } from "@/lib/metrics";
 import type { BarTuple, CompanySummary, DailyBar } from "@/lib/types";
-import { BAND_LABEL, BAND_TEXT, bandFor } from "./bands";
+import { bandOf, type ViewConfig } from "./views";
 import { AXIS_TICK, GRID_STROKE, TooltipCard, datumOf } from "./charts/ChartTooltip";
 import { RangeRail } from "./RangeRail";
 
@@ -35,7 +35,7 @@ async function loadHistory(ticker: string): Promise<DailyBar[]> {
   return bars;
 }
 
-export function DetailPanel({ company }: { company: CompanySummary }) {
+export function DetailPanel({ company, view }: { company: CompanySummary; view: ViewConfig }) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const requested = useRef<string | null>(null);
 
@@ -50,7 +50,14 @@ export function DetailPanel({ company }: { company: CompanySummary }) {
   }, [company.ticker]);
 
   const current = loaded?.ticker === company.ticker ? loaded : null;
-  const band = bandFor(company.pctAboveLow);
+  const band = bandOf(view, company);
+  // The view's anchor line (low or high) is emphasised; the other is muted.
+  const lineStyle = (anchor: "low" | "high") =>
+    view.anchor === anchor
+      ? { stroke: view.fill.within5, label: view.anchorText }
+      : { stroke: "var(--ink-muted)", label: "var(--ink-muted)" };
+  const lowLine = lineStyle("low");
+  const highLine = lineStyle("high");
 
   const chartData = useMemo(
     () =>
@@ -66,7 +73,7 @@ export function DetailPanel({ company }: { company: CompanySummary }) {
         <div className="min-w-0">
           <h2 id="detail-heading" className="text-2xl font-bold [font-stretch:80%]">
             {company.ticker}
-            <span className="ml-2 text-base font-normal text-ink-muted [font-stretch:100%]">#{company.rank}</span>
+            <span className="ml-2 text-base font-normal text-ink-muted [font-stretch:100%]">#{view.rank(company)}</span>
           </h2>
           <p className="truncate text-sm text-ink-muted">
             {company.name} · {company.sector}
@@ -74,15 +81,21 @@ export function DetailPanel({ company }: { company: CompanySummary }) {
         </div>
         <div className="ml-auto text-right">
           <div className="text-2xl font-semibold">{formatPrice(company.price, company.currency)}</div>
-          <div className={`text-sm font-semibold ${BAND_TEXT[band]}`}>
-            {formatPct(company.pctAboveLow)} above low
-            <span className="sr-only"> ({BAND_LABEL[band]})</span>
+          <div className={`text-sm font-semibold ${view.text[band]}`}>
+            {formatPct(view.distance(company))} {view.distancePhrase}
+            <span className="sr-only"> ({view.bandLabel[band]})</span>
           </div>
         </div>
       </header>
 
       <div className="flex flex-col gap-1.5">
-        <RangeRail position={company.rangePosition} low={company.low52} high={company.high52} size="lg" />
+        <RangeRail
+          position={company.rangePosition}
+          low={company.low52}
+          high={company.high52}
+          zone={view.zone}
+          size="lg"
+        />
         <div className="flex justify-between text-xs text-ink-muted">
           <span>
             Low {formatPrice(company.low52, company.currency)} · {formatDate(company.low52Date)}
@@ -157,15 +170,15 @@ export function DetailPanel({ company }: { company: CompanySummary }) {
               />
               <ReferenceLine
                 y={company.high52}
-                stroke="var(--ink-muted)"
+                stroke={highLine.stroke}
                 strokeDasharray="4 4"
-                label={{ value: "52w high", position: "insideTopLeft", fill: "var(--ink-muted)", fontSize: 11 }}
+                label={{ value: "52w high", position: "insideTopLeft", fill: highLine.label, fontSize: 11 }}
               />
               <ReferenceLine
                 y={company.low52}
-                stroke="var(--red-mark)"
+                stroke={lowLine.stroke}
                 strokeDasharray="4 4"
-                label={{ value: "52w low", position: "insideBottomLeft", fill: "var(--red)", fontSize: 11 }}
+                label={{ value: "52w low", position: "insideBottomLeft", fill: lowLine.label, fontSize: 11 }}
               />
             </ComposedChart>
           </ResponsiveContainer>
