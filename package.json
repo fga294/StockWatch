@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "fetch-data": "tsx scripts/fetch-data.ts"
   },
   "dependencies": {
     "next": "16.3.8",
