@@ -1,26 +1,98 @@
 @import "tailwindcss";
 
+/*
+ * "Harbour" palette. Light by default, dark follows the system preference.
+ * Red/amber are the near-low bands (≤5%, 5–10%); every text/background pair
+ * meets WCAG AA contrast.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --bg: #f3f6f7;
+  --surface: #ffffff;
+  --surface-2: #e9eff1;
+  --ink: #102a35;
+  --ink-muted: #4f6670;
+  --line: #d3dee2;
+  --accent: #0b6e79;
+  --accent-soft: #d5ecee;
+  --neutral-mark: #7c949d;
+  --red: #b42318;
+  --red-mark: #d4402f;
+  --red-bg: #fdecea;
+  --amber: #8a5300;
+  --amber-mark: #d08a00;
+  --amber-bg: #fff4db;
+  --hatch: rgb(180 35 24 / 0.22);
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg: #0b1a21;
+    --surface: #10232c;
+    --surface-2: #163039;
+    --ink: #e4eef1;
+    --ink-muted: #93a9b2;
+    --line: #23404b;
+    --accent: #4fb8c4;
+    --accent-soft: #173e46;
+    --neutral-mark: #5e7a85;
+    --red: #f2775f;
+    --red-mark: #e5604a;
+    --red-bg: #3a1c19;
+    --amber: #e9b04a;
+    --amber-mark: #d99a2b;
+    --amber-bg: #33270f;
+    --hatch: rgb(242 119 95 / 0.28);
+    color-scheme: dark;
   }
 }
 
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-neutral-mark: var(--neutral-mark);
+  --color-red: var(--red);
+  --color-red-mark: var(--red-mark);
+  --color-red-bg: var(--red-bg);
+  --color-amber: var(--amber);
+  --color-amber-mark: var(--amber-mark);
+  --color-amber-bg: var(--amber-bg);
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-feature-settings: "tnum" 1;
+}
+
+/* The near-low zone on range rails: diagonal hatching over the bottom 10%. */
+.near-low-zone {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--hatch) 0 2px,
+    transparent 2px 5px
+  );
+}
+
+/* Recharts draws its own focus rectangles on SVG wrappers; keep our ring instead. */
+.recharts-wrapper:focus,
+.recharts-surface:focus {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
