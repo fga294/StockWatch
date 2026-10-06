@@ -22,6 +22,8 @@ export interface Constituent {
   code: string;
   name: string;
   type: SecurityType;
+  /** Fallback sector, used only when Yahoo has no profile for the ticker. */
+  sector?: string;
 }
 
 export interface ConstituentFile {

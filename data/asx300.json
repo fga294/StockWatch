@@ -1204,7 +1204,8 @@
     {
       "code": "SGH",
       "name": "SGH Limited",
-      "type": "company"
+      "type": "company",
+      "sector": "Industrials"
     },
     {
       "code": "SGLLV",

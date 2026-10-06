@@ -3,6 +3,8 @@ import {
   averageDailyValue,
   barToTuple,
   fiftyTwoWeekRange,
+  lastYearOfBars,
+  oneYearBefore,
   pctAboveLow,
   proximityBand,
   rangePosition,
@@ -76,14 +78,28 @@ describe("fiftyTwoWeekRange", () => {
     expect(r).toEqual({ low: 8, high: 15, lowDate: "2026-03-02", highDate: "2026-03-02" });
   });
 
-  it("only looks back 365 days from the latest bar", () => {
+  it("only looks back one year from the latest bar", () => {
     const r = fiftyTwoWeekRange([
-      bar("2025-01-01", 1, 100), // older than 52 weeks: ignored
+      bar("2025-01-01", 1, 100), // older than a year: ignored
       bar("2025-12-01", 9, 12),
       bar("2026-06-01", 10, 11),
     ]);
     expect(r?.low).toBe(9);
     expect(r?.high).toBe(12);
+  });
+
+  it("includes the bar on the same calendar date one year earlier", () => {
+    const r = fiftyTwoWeekRange([
+      bar("2025-10-05", 1, 100), // one day too old
+      bar("2025-10-06", 9, 20), // boundary: included
+      bar("2026-10-06", 10, 11),
+    ]);
+    expect(r).toMatchObject({ low: 9, high: 20, highDate: "2025-10-06" });
+  });
+
+  it("does not depend on input order", () => {
+    const r = fiftyTwoWeekRange([bar("2026-06-01", 10, 11), bar("2025-01-01", 1, 100), bar("2025-12-01", 9, 12)]);
+    expect(r).toMatchObject({ low: 9, high: 12 });
   });
 
   it("returns null when there is no data", () => {
@@ -117,6 +133,19 @@ describe("fiftyTwoWeekRange", () => {
     expect(fiftyTwoWeekRange(bars, 8.5)).toMatchObject({ low: 8.5, lowDate: "2026-01-05", high: 12 });
     expect(fiftyTwoWeekRange(bars, 13)).toMatchObject({ high: 13, highDate: "2026-01-05", low: 9 });
     expect(fiftyTwoWeekRange(bars, 10)).toMatchObject({ low: 9, high: 12 });
+  });
+});
+
+describe("oneYearBefore / lastYearOfBars", () => {
+  it("subtracts a calendar year, rolling 29 Feb forward", () => {
+    expect(oneYearBefore("2026-10-06")).toBe("2025-10-06");
+    expect(oneYearBefore("2028-02-29")).toBe("2027-03-01");
+  });
+
+  it("returns valid bars in the window, sorted", () => {
+    const out = lastYearOfBars([bar("2026-03-01", 1, 2), bar("2024-01-01", 1, 2), bar("2026-01-01", NaN, 2)]);
+    expect(out.map((b) => b.date)).toEqual(["2026-03-01"]);
+    expect(lastYearOfBars([])).toEqual([]);
   });
 });
 

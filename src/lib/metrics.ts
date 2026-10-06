@@ -4,8 +4,6 @@
  */
 import type { BarTuple, DailyBar, FiftyTwoWeekRange } from "./types";
 
-const MS_PER_DAY = 86_400_000;
-
 export const NEAR_LOW_RED_PCT = 5;
 export const NEAR_LOW_AMBER_PCT = 10;
 
@@ -24,9 +22,28 @@ export function isValidBar(bar: DailyBar): boolean {
   );
 }
 
+/** Same calendar date one year earlier (YYYY-MM-DD). 29 Feb rolls to 1 Mar. */
+export function oneYearBefore(isoDate: string): string {
+  const d = new Date(`${isoDate}T00:00:00Z`);
+  d.setUTCFullYear(d.getUTCFullYear() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
 /**
- * 52-week high/low from daily highs and lows over the 365 calendar days
- * ending on the most recent bar.
+ * Valid bars from the same calendar date one year before the latest bar,
+ * inclusive, up to the latest bar, in date order. This matches Yahoo's own
+ * 52-week window.
+ */
+export function lastYearOfBars(bars: readonly DailyBar[]): DailyBar[] {
+  const valid = bars.filter(isValidBar).sort((a, b) => a.date.localeCompare(b.date));
+  if (valid.length === 0) return [];
+  const start = oneYearBefore(valid[valid.length - 1].date);
+  return valid.filter((b) => b.date >= start);
+}
+
+/**
+ * 52-week high/low from daily highs and lows over the year ending on the
+ * most recent bar (see lastYearOfBars).
  *
  * If `currentPrice` is given and sits outside the bar range (e.g. a delayed
  * quote ticked after the last bar was built), the range is widened to include
@@ -38,12 +55,8 @@ export function fiftyTwoWeekRange(
   bars: readonly DailyBar[],
   currentPrice?: number,
 ): FiftyTwoWeekRange | null {
-  const valid = bars.filter(isValidBar);
-  if (valid.length === 0) return null;
-
-  const lastTime = Math.max(...valid.map((b) => Date.parse(b.date)));
-  const cutoff = lastTime - 365 * MS_PER_DAY;
-  const window = valid.filter((b) => Date.parse(b.date) > cutoff);
+  const window = lastYearOfBars(bars);
+  if (window.length === 0) return null;
 
   let low = window[0];
   let high = window[0];
@@ -60,7 +73,7 @@ export function fiftyTwoWeekRange(
   };
 
   if (isPositive(currentPrice)) {
-    const lastDate = new Date(lastTime).toISOString().slice(0, 10);
+    const lastDate = window[window.length - 1].date;
     if (currentPrice < range.low) {
       range.low = currentPrice;
       range.lowDate = lastDate;
